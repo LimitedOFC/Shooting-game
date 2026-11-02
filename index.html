@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎯 AIM TRAINER</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a12;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ff4f4f, #ff9a00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    #subtitle {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    /* ── HUD ── */
+    #hud {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .hud-box {
+      background: #111122;
+      border: 1px solid #222244;
+      border-radius: 10px;
+      padding: 8px 22px;
+      text-align: center;
+      min-width: 90px;
+    }
+
+    .hud-label {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .hud-val {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #ff4f4f;
+    }
+
+    #hud-time .hud-val  { color: #00d4ff; }
+    #hud-best .hud-val  { color: #ffe600; }
+
+    /* ── CANVAS ── */
+    #gameCanvas {
+      border: 3px solid #222244;
+      border-radius: 12px;
+      cursor: crosshair;
+      display: block;
+      box-shadow: 0 0 40px rgba(255,79,79,0.15);
+      background: #0d0d1f;
+    }
+
+    /* ── OVERLAY ── */
+    #overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      background: rgba(10,10,18,0.92);
+      border: 2px solid #ff4f4f;
+      border-radius: 20px;
+      padding: 40px 50px;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(255,79,79,0.3);
+    }
+
+    #overlay h2 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #ff4f4f;
+    }
+
+    #overlay p {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.95rem;
+      max-width: 300px;
+      line-height: 1.6;
+    }
+
+    #overlay .big-score {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #ffe600;
+      line-height: 1;
+    }
+
+    #overlay .accuracy {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .btn {
+      padding: 13px 40px;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #ff4f4f, #ff9a00);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 0 25px rgba(255,79,79,0.4);
+    }
+
+    .btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 40px rgba(255,79,79,0.7);
+    }
+
+    /* ── DIFFICULTY SELECTOR ── */
+    #diffRow {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .diff-btn {
+      padding: 7px 18px;
+      border-radius: 50px;
+      border: 2px solid #333355;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 1px;
+    }
+
+    .diff-btn.active, .diff-btn:hover {
+      border-color: #ff4f4f;
+      color: #ff4f4f;
+      background: rgba(255,79,79,0.1);
+    }
+
+    #controls-hint {
+      margin-top: 16px;
+      color: rgba(255,255,255,0.2);
+      font-size: 0.78rem;
+      letter-spacing: 1px;
+    }
+
+    /* ── MISS FLASH ── */
+    body.miss-flash { background: #1a0a0a; }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 AIM TRAINER</h1>
+  <div id="subtitle">Click the targets. Don't miss.</div>
+
+  <div id="hud">
+    <div class="hud-box" id="hud-score">
+      <div class="hud-label">Score</div>
+      <div class="hud-val" id="scoreVal">0</div>
+    </div>
+    <div class="hud-box" id="hud-streak">
+      <div class="hud-label">Streak 🔥</div>
+      <div class="hud-val" id="streakVal">0</div>
+    </div>
+    <div class="hud-box" id="hud-time">
+      <div class="hud-label">Time</div>
+      <div class="hud-val" id="timeVal">30</div>
+    </div>
+    <div class="hud-box" id="hud-best">
+      <div class="hud-label">Best</div>
+      <div class="hud-val" id="bestVal">0</div>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas" width="700" height="420"></canvas>
+
+  <div id="controls-hint">Left Click to shoot • Targets get smaller as score increases</div>
+
+  <!-- OVERLAY -->
+  <div id="overlay">
+    <h2 id="overlayTitle">🎯 AIM TRAINER</h2>
+    <div id="overlayBody">
+      <p>Hit as many targets as you can in 30 seconds.<br>Don't miss — it costs you points!</p>
+    </div>
+    <div id="diffRow">
+      <button class="diff-btn active" data-diff="easy">Easy</button>
+      <button class="diff-btn" data-diff="medium">Medium</button>
+      <button class="diff-btn" data-diff="hard">Hard</button>
+      <button class="diff-btn" data-diff="insane">Insane</button>
+    </div>
+    <button class="btn" id="startBtn">▶ Start</button>
+  </div>
+
+<script>
+  const canvas  = document.getElementById('gameCanvas');
+  const ctx     = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+
+  const scoreEl  = document.getElementById('scoreVal');
+  const streakEl = document.getElementById('streakVal');
+  const timeEl   = document.getElementById('timeVal');
+  const bestEl   = document.getElementById('bestVal');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlayBody  = document.getElementById('overlayBody');
+
+  // Difficulty settings: [startRadius, minRadius, timeLimit, misspenalty]
+  const DIFF = {
+    easy:   { radius: 55, minRadius: 30, time: 30, miss: 1 },
+    medium: { radius: 40, minRadius: 20, time: 25, miss: 2 },
+    hard:   { radius: 28, minRadius: 14, time: 20, miss: 3 },
+    insane: { radius: 18, minRadius: 10, time: 20, miss: 5 },
+  };
+
+  let difficulty = 'easy';
+  let score, streak, shots, hits, timeLeft, running, targets, animFrame, timerInterval, best;
+
+  best = parseInt(localStorage.getItem('aimBest') || '0');
+  bestEl.textContent = best;
+
+  // Difficulty buttons
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      difficulty = btn.dataset.diff;
+    });
+  });
+
+  /* ─── TARGET ─── */
+  class Target {
+    constructor(cfg) {
+      this.cfg    = cfg;
+      this.radius = cfg.radius;
+      this.x      = cfg.minRadius + Math.random() * (canvas.width  - cfg.minRadius * 2);
+      this.y      = cfg.minRadius + Math.random() * (canvas.height - cfg.minRadius * 2);
+      this.born   = performance.now();
+      this.life   = 1800 + Math.random() * 800; // ms before it vanishes
+      this.alive  = true;
+      this.wobble = Math.random() * Math.PI * 2;
+      this.dx     = (Math.random() - 0.5) * (difficulty === 'insane' ? 3 : difficulty === 'hard' ? 1.5 : 0);
+      this.dy     = (Math.random() - 0.5) * (difficulty === 'insane' ? 3 : difficulty === 'hard' ? 1.5 : 0);
+    }
+
+    update(now) {
+      const age = now - this.born;
+      if (age > this.life) { this.alive = false; return; }
+      this.wobble += 0.05;
+      // moving targets on hard/insane
+      this.x += this.dx;
+      this.y += this.dy;
+      if (this.x - this.radius < 0 || this.x + this.radius > canvas.width)  this.dx *= -1;
+      if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.dy *= -1;
+    }
+
+    draw(now) {
+      const age    = now - this.born;
+      const frac   = age / this.life;
+      const pulse  = 1 + Math.sin(this.wobble) * 0.08;
+      const r      = this.radius * pulse;
+      const alpha  = frac > 0.75 ? 1 - (frac - 0.75) / 0.25 : 1;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Outer glow
+      const grd = ctx.createRadialGradient(this.x, this.y, r * 0.3, this.x, this.y, r * 1.4);
+      grd.addColorStop(0, 'rgba(255,79,79,0.3)');
+      grd.addColorStop(1, 'rgba(255,79,79,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, r * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rings
+      const rings = [
+        { r: 1.0,  fill: '#ff1a1a' },
+        { r: 0.72, fill: '#fff' },
+        { r: 0.50, fill: '#ff4f4f' },
+        { r: 0.28, fill: '#fff' },
+        { r: 0.12, fill: '#ff1a1a' },
+      ];
+      rings.forEach(ring => {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * ring.r, 0, Math.PI * 2);
+        ctx.fillStyle = ring.fill;
+        ctx.fill();
+      });
+
+      // Crosshair lines
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.moveTo(this.x - r, this.y); ctx.lineTo(this.x + r, this.y);
+      ctx.moveTo(this.x, this.y - r); ctx.lineTo(this.x, this.y + r);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    hit(px, py) {
+      const dx = px - this.x, dy = py - this.y;
+      return Math.sqrt(dx * dx + dy * dy) <= this.radius;
+    }
+  }
+
+  /* ─── HIT PARTICLES ─── */
+  const particles = [];
+
+  function spawnParticles(x, y, color) {
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        color,
+        size: 3 + Math.random() * 4
+      });
+    }
+  }
+
+  function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.15;
+      p.life -= 0.045;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    particles.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  /* ─── FLOATING SCORE TEXT ─── */
+  const floaters = [];
+
+  function spawnFloater(x, y, text, color) {
+    floaters.push({ x, y, text, color, life: 1, vy: -2 });
+  }
+
+  function updateFloaters() {
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      floaters[i].y  += floaters[i].vy;
+      floaters[i].life -= 0.025;
+      if (floaters[i].life <= 0) floaters.splice(i, 1);
+    }
+  }
+
+  function drawFloaters() {
+    floaters.forEach(f => {
+      ctx.save();
+      ctx.globalAlpha = f.life;
+      ctx.fillStyle   = f.color;
+      ctx.font        = 'bold 20px Segoe UI';
+      ctx.textAlign   = 'center';
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.restore();
+    });
+  }
+
+  /* ─── GAME LOOP ─── */
+  function spawnTarget() {
+    if (!running) return;
+    const cfg = {
+      ...DIFF[difficulty],
+      radius: Math.max(
+        DIFF[difficulty].minRadius,
+        DIFF[difficulty].radius - Math.floor(score / 5) * 2
+      )
+    };
+    targets.push(new Target(cfg));
+  }
+
+  function gameLoop(now) {
+    if (!running) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth   = 1;
+    for (let x = 0; x < canvas.width; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    // Update & draw targets
+    for (let i = targets.length - 1; i >= 0; i--) {
+      targets[i].update(now);
+      if (!targets[i].alive) {
+        targets.splice(i, 1);
+      } else {
+        targets[i].draw(now);
+      }
+    }
+
+    // Maintain 1–3 targets on screen
+    while (targets.length < Math.min(1 + Math.floor(score / 8), 3)) {
+      spawnTarget();
+    }
+
+    updateParticles(); drawParticles();
+    updateFloaters();  drawFloaters();
+
+    animFrame = requestAnimationFrame(gameLoop);
+  }
+
+  /* ─── CLICK HANDLER ─── */
+  canvas.addEventListener('click', e => {
+    if (!running) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    const my   = e.clientY - rect.top;
+
+    shots++;
+    let hit = false;
+
+    for (let i = targets.length - 1; i >= 0; i--) {
+      if (targets[i].hit(mx, my)) {
+        // Points: bigger streak = more points
+        const pts = 10 + streak * 2;
+        score  += pts;
+        streak++;
+        hits++;
+        scoreEl.textContent  = score;
+        streakEl.textContent = streak;
+        spawnParticles(targets[i].x, targets[i].y, '#ff4f4f');
+        spawnFloater(targets[i].x, targets[i].y - 20, `+${pts}`, streak > 5 ? '#ffe600' : '#ff4f4f');
+        targets.splice(i, 1);
+        spawnTarget();
+        hit = true;
+        break;
+      }
+    }
+
+    if (!hit) {
+      // Miss penalty
+      const pen = DIFF[difficulty].miss;
+      score  = Math.max(0, score - pen);
+      streak = 0;
+      scoreEl.textContent  = score;
+      streakEl.textContent = 0;
+      spawnFloater(mx, my, `-${pen}`, '#555');
+      // Flash background
+      document.body.classList.add('miss-flash');
+      setTimeout(() => document.body.classList.remove('miss-flash'), 80);
+    }
+  });
+
+  /* ─── START / END ─── */
+  function startGame() {
+    score   = 0; streak = 0; shots = 0; hits = 0;
+    targets = [];
+    particles.length = 0;
+    floaters.length  = 0;
+    timeLeft = DIFF[difficulty].time;
+
+    scoreEl.textContent  = 0;
+    streakEl.textContent = 0;
+    timeEl.textContent   = timeLeft;
+
+    overlay.style.display = 'none';
+    running = true;
+
+    cancelAnimationFrame(animFrame);
+    animFrame = requestAnimationFrame(gameLoop);
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(timerInterval);
+    cancelAnimationFrame(animFrame);
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem('aimBest', best);
+      bestEl.textContent = best;
+    }
+
+    const acc = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+
+    overlayTitle.textContent = score >= best ? '🏆 NEW BEST!' : '⏱ Time\'s Up!';
+    overlayBody.innerHTML = `
+      <div class="big-score">${score}</div>
+      <div class="accuracy">Accuracy: ${acc}% &nbsp;|&nbsp; Hits: ${hits} / ${shots}</div>
+    `;
+    startBtn.textContent  = '↺ Play Again';
+    overlay.style.display = 'flex';
+  }
+
+  startBtn.addEventListener('click', startGame);
+</script>
+
+</body>
+</html>
